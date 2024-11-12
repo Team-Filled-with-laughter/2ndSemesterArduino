@@ -6,7 +6,7 @@
 #define CLK1  2  //엠프 클락 핀 넘버 
 #define DOUT2  5 //엠프 데이터 아웃 핀 넘버 선언
 #define CLK2  4  //엠프 클락 핀 넘버   
-#define DISTANCE  3.0  //무게센서 간격(cm)   
+#define DISTANCE  3  //무게센서 간격(cm)   
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
 #endif
@@ -36,9 +36,9 @@ void setup(void) {
 }
 
 void sendSpeed(double speed) {
-  byte bytes[8]; 
+  byte bytes[4]; 
   memcpy(bytes, &speed, sizeof(speed));
-   for (int i = 0; i < 8; i++) {
+   for (int i = 0; i < 4; i++) {
     Serial.write(bytes[i]);
   }
 }
@@ -80,7 +80,7 @@ void senseWeight() {
     }
     end_time = millis();
     duration = (end_time-start_time)/1000;
-    double speed = DISTANCE / duration;
+    int speed = DISTANCE / duration;
     Serial.print("speed: ");
     Serial.println(speed);
     sendSpeed(speed);
