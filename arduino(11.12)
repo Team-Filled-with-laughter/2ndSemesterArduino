@@ -7,7 +7,7 @@
 #define DOUT2  5 //엠프 데이터 아웃 핀 넘버 선언
 #define CLK2  4  //엠프 클락 핀 넘버   
 #define DISTANCE  20.0  //무게센서 간격(cm)   
-#define OVERSPEED  8
+#define OVERSPEED  8.0
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
 #endif
@@ -72,7 +72,7 @@ void draw2(double speed)
   u8g2.print("cm/s");
 }
 
-void draw3(int overSpeed)
+void draw3(double overSpeed)
 {
   u8g2.setFont(u8g2_font_unifont_t_korean1);
   u8g2.setFontDirection(0);
@@ -81,8 +81,8 @@ void draw3(int overSpeed)
   u8g2.setCursor(23, 35);
   u8g2.print("Front Bump");
   u8g2.setCursor(0, 55);
-  u8g2.print("OverSpeed : ");
-  u8g2.setCursor(60, 55);
+  u8g2.print("Limit : ");
+  u8g2.setCursor(65, 55);
   u8g2.print(overSpeed, 1);
   u8g2.setCursor(95, 55);
   u8g2.print("cm/s");
@@ -137,7 +137,7 @@ void loop() {
   delay(3000);
 
   double speed = senseWeight();
-
+  if (speed >0){
   // 비가 내리면 (센서 값이 700 미만일 때)
   if (rainValue < 700) {
     u8g2.firstPage();        // 새로운 페이지 시작
@@ -150,6 +150,7 @@ void loop() {
       draw1(speed);               // "즐거운 하루 되세요!" 메시지 출력
     } while (u8g2.nextPage()); // 화면 업데이트
   }
-
-  delay(100);  
+   delay(3000);  
+  }
+ 
 }
