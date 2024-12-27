@@ -6,7 +6,8 @@
 #define CLK1  2  //엠프 클락 핀 넘버 
 #define DOUT2  5 //엠프 데이터 아웃 핀 넘버 선언
 #define CLK2  4  //엠프 클락 핀 넘버   
-#define DISTANCE  3  //무게센서 간격(cm)   
+#define DISTANCE  20.0  //무게센서 간격(cm)   
+#define OVERSPEED  8
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
 #endif
@@ -24,7 +25,7 @@ HX711 scale2(DOUT2, CLK2); //엠프 핀 선언
 const int rainSensor = A4;
 
 void setup(void) {
-  
+
   u8g2.begin();
   u8g2.enableUTF8Print();    // enable UTF8 support for the Arduino print() function
   Serial.begin(9600);
@@ -36,73 +37,117 @@ void setup(void) {
 }
 
 void sendSpeed(double speed) {
-  byte bytes[4]; 
-  memcpy(bytes, &speed, sizeof(speed));
-   for (int i = 0; i < 4; i++) {
-    Serial.write(bytes[i]);
-  }
+  Serial.println(speed, 6);
 }
 
-void draw1(void)
+void draw1(double speed)
 {
   u8g2.setFont(u8g2_font_unifont_t_korean1);
   u8g2.setFontDirection(0);
-  u8g2.setCursor(20, 20);
-  u8g2.print("즐거운 하루");
-  u8g2.setCursor(40, 40);
-  u8g2.print("되세요!");
+  u8g2.setCursor(37, 15);
+  u8g2.print("Caution");
+  u8g2.setCursor(23, 35);
+  u8g2.print("Front Bump");
+  u8g2.setCursor(0, 55);
+  u8g2.print("Speed : ");
+  u8g2.setCursor(60, 55);
+  u8g2.print(speed, 1);
+  u8g2.setCursor(95, 55);
+  u8g2.print("cm/s");
 }
-void draw2(void)
+
+void draw2(double speed)
 {
   u8g2.setFont(u8g2_font_unifont_t_korean1);
   u8g2.setFontDirection(0);
-  u8g2.setCursor(20, 20);
-  u8g2.print("비가 내리니");
-  u8g2.setCursor(5, 40);
-  u8g2.print("안전 운행하세요");
+  u8g2.setCursor(37, 15);
+  u8g2.print("Caution");
+  u8g2.setCursor(34, 35);
+  u8g2.print("Wet Road");
+  u8g2.setCursor(0, 55);
+  u8g2.print("Speed : ");
+  u8g2.setCursor(60, 55);
+  u8g2.print(speed, 1);
+  u8g2.setCursor(95, 55);
+  u8g2.print("cm/s");
 }
 
-void senseWeight() {
+void draw3(int overSpeed)
+{
+  u8g2.setFont(u8g2_font_unifont_t_korean1);
+  u8g2.setFontDirection(0);
+  u8g2.setCursor(37, 15);
+  u8g2.print("Caution");
+  u8g2.setCursor(23, 35);
+  u8g2.print("Front Bump");
+  u8g2.setCursor(0, 55);
+  u8g2.print("OverSpeed : ");
+  u8g2.setCursor(60, 55);
+  u8g2.print(overSpeed, 1);
+  u8g2.setCursor(95, 55);
+  u8g2.print("cm/s");
+}
+
+
+double senseWeight() {
   unsigned long start_time, end_time;
-  int duration = 0;
+  double duration = 0;
   int weightValue2 = 0;
- 
+
   int weightValue1 = scale1.get_units();
-  Serial.print("wegiht1: ");
-  Serial.println(weightValue1);
-  if (weightValue1 >=1){
+  //Serial.print("wegiht1: ");
+  //Serial.println(weightValue1);
+  if (weightValue1 !=0){
     start_time = millis();
-    while(weightValue2<1){
+   //Serial.print("start_time: ");
+   // Serial.println(start_time);
+
+    scale2.tare();  //스케일 설정
+    while(weightValue2==0){
       weightValue2 = scale2.get_units();
-      Serial.print("wegiht2: ");
-      Serial.println(weightValue2);
+      //Serial.print("wegiht2: ");
+     // Serial.println(weightValue2);
       delay(100);
     }
     end_time = millis();
-    duration = (end_time-start_time)/1000;
-    int speed = DISTANCE / duration;
+    //Serial.print("end_time: ");
+    //Serial.println(end_time);
+    duration = (end_time-start_time);
+    //Serial.print("duration: ");
+    //Serial.println(duration);
+    duration = duration/1000.0;
+    double speed = DISTANCE / duration;
     Serial.print("speed: ");
     Serial.println(speed);
     sendSpeed(speed);
+    scale1.tare();  //스케일 설정
+    return speed;
     delay(1000);
   }
   delay(100);
-   
+
 }
 void loop() {
   // 비 감지 센서 값 읽기
   int rainValue = analogRead(rainSensor);
-  senseWeight();
+  u8g2.firstPage();
+  do {
+      draw3(OVERSPEED);               // "비가 내리니 안전 운행하세요" 메시지 출력
+    } while (u8g2.nextPage()); // 화면 업데이트
+  delay(3000);
+
+  double speed = senseWeight();
+
   // 비가 내리면 (센서 값이 700 미만일 때)
   if (rainValue < 700) {
     u8g2.firstPage();        // 새로운 페이지 시작
     do {
-      draw2();               // "비가 내리니 안전 운행하세요" 메시지 출력
+      draw2(speed);               // "비가 내리니 안전 운행하세요" 메시지 출력
     } while (u8g2.nextPage()); // 화면 업데이트
   } else {
     u8g2.firstPage();        // 새로운 페이지 시작
     do {
-      draw1();               // "즐거운 하루 되세요!" 메시지 출력
+      draw1(speed);               // "즐거운 하루 되세요!" 메시지 출력
     } while (u8g2.nextPage()); // 화면 업데이트
   }
 
